@@ -1,0 +1,75 @@
+---
+title: "Testing R Markdown"
+output: html_document
+---
+
+This is a continuation of the data exploration for my Research Methods project using R, this time written using RMarkdown. The last installment can be found [here](http://ericagunn.com/2016/02/12/researchmethods-exploration-of-land-use-data/).
+
+I am continuing to work my way through the World Bank data on land use as a way to familiarize myself with R. Land use is interesting because it is one of the primary factors that influence the organic carbon content of soil, an important metric in determining soil heath and fertility. 
+
+```{r include=FALSE}
+load("data.RData")
+
+require(ggplot2)
+require(scales)
+
+
+```
+
+So far, I have worked with only one dataset from the World Bank at a time. Each one is saved in a separate .csv file, and needs to be loaded individually. Today, my goal was to combine two loaded datasets into a single R dataframe and plot the information.
+
+First, I started by loading the total land area dataset for all of the countries in the world. (Actually, it turned out that the raw file included information for each region, continent, and several economic classes as well...I cut those out manually for now.)
+
+I chose to use only the 50 largest countries, to reduce the number of data points that I had to plot at one time. Comparing the total area for these 50 countries with the world total land area shows that they make up about 87% of the total available land, so this should still give a pretty good idea of what's going on in the data.
+
+```{r echo=FALSE}
+
+ggplot(data=totalLandArea, aes(x=reordered, y=totalLandArea$value)) +geom_bar(width=.75,stat="identity")+coord_flip()+labs(title="Countries with largest land area", x="Country", y = "Land area (sq. km)")+scale_y_continuous(labels=comma)+ theme(axis.title.x = element_text(size=12),axis.title.y = element_text(size=12), axis.text.x = element_text(size =10), axis.text.y = element_text(size =6), plot.title=element_text(size=16))
+
+```
+
+
+Next, I loaded the file containing information on the percentage of agricultural land for each country. Again, I used the 50 largest countries to reduce the amount of information to plot, and kept them in the same order to facilitate comparison.
+
+I also chose to look at a single year's worth of data for now, rather than trying to map changes over time. The database contains information from 1961-2014 in most cases, though some variables are not reported for 2013. I used 2013 for this analysis, since it was the most recent year with complete data for both sets.
+
+```{r echo=FALSE}
+
+ggplot(data=combinedData, aes(x=combinedReordered, y=combinedData$agric)) +geom_bar(width=.75,stat="identity")+coord_flip()+labs(title="% agricultural land for 50 largest countries", x="Country", y = "% Agricultural Land")+scale_y_continuous(labels=comma)+ theme(axis.title.x = element_text(size=12),axis.title.y = element_text(size=12), axis.text.x = element_text(size =10), axis.text.y = element_text(size =6), plot.title=element_text(size=16))
+
+```
+
+I was really surprised to see Saudi Arabia among the countries with the highest percentages of agricultural land. I don't think of Saudi Arabia as a particularly agricultural country, but it appears that it is. Kazakhstan, South Africa, and Nigeria are also at the top of the list. (I double-checked that this was correct in the original spreadsheet, just to make sure I hadn't mixed something up during processing in R...it does seem to be the case.)
+
+Really, I wanted to compare the agricultural and total land areas for each country, and it would be easier to see relative sizes if the two variables were together on the same plot. So, I calculated the agricultural land area using the percentage value and the country's total land area, and plotted both variables together.
+
+Getting the plots to show up properly takes quite a bit of code:
+
+```{r, echo=TRUE,fig.width=8.2}
+
+ggplot(data=combinedData2, aes(x=combinedData2$factor, y=combinedData2$value,fill=combinedData2$x2013))+
+  geom_bar(width=.5,stat="identity",position="dodge")+
+  coord_flip()+
+  labs(title="Total and agricultural land area for 50 largest countries", 
+        x="Country", 
+        y = "Land area (sq. km)")+
+  scale_y_continuous(labels=comma,
+        expand = c(0, 0), 
+        limits = c(-5,17500000))+ 
+  theme(axis.title.x = element_text(size=12),
+        axis.title.y = element_text(size=12), 
+        axis.text.x = element_text(size =10), 
+        axis.text.y = element_text(size =6),
+        plot.title=element_text(size=16))+
+  scale_fill_manual(values=c("#999999","#E69F00"), 
+        name="Land Type", 
+        breaks=c("X2013", "absAgricArea"),  
+        labels=c("Total","Agricultural"))
+```
+
+But it creates a reasonably good-looking graph in the end. (There are still some things that I'd like to tweak, but I decided I'd had enough for now.)
+
+It's interesting to see the total and agricultural land areas plotted together, because it's immediately obvious how much variation there is between countries. The Russian Federation and Canada are huge, but they use only a small portion of their land for agriculture (13% and 7%, respectively), likely because of the low population densities and high latitudes of much of their land. In contrast, many smaller countries devote substantial portions of their land area to agriculture. 
+
+In future graphics, it will be interesting to take a closer look at how land use in these different countries has changed over time, and how it correlates with other global trends, such as population growth and urbanization. These were identified as leading factors in determining soil change in a 2015 report on the "Status of the World's Soil Resources" by the Food and Agricultural Organization of the United Nations. 
+
